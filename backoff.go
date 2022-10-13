@@ -1,6 +1,6 @@
 /*
-Package backoff provides a function for retrying a function with exponential backoff until the
-provided operation either returns nil, indicating success, or it hits an attempts limit.
+Package backoff provides an exponential backoff function for retrying until the
+provided operation either returns nil (indicating success) or it hits an attempts limit.
 */
 package backoff
 
@@ -20,17 +20,6 @@ type RetryFunc = func(error, time.Duration)
 // SleepFunc can be used to replace the default time.Sleep function, for example in unit tests
 type SleepFunc = func(time.Duration)
 
-type backoff struct {
-	Min      time.Duration
-	Max      time.Duration
-	Attempts int
-
-	retryFunc RetryFunc
-	sleepFunc SleepFunc
-	current   time.Duration
-	attempt   int
-}
-
 type Option func(*backoff)
 
 // WithRetryFunc option is used to set a function to be executed before sleeping in a retry, the arguments are
@@ -48,7 +37,7 @@ func WithSleepFunc(sleep SleepFunc) Option {
 	}
 }
 
-// WithMinDuration set duration of first sleep
+// WithMinDuration set duration of first sleep after a failed attempt
 func WithMinDuration(d time.Duration) Option {
 	return func(b *backoff) {
 		b.Min = d
@@ -64,10 +53,22 @@ func WithMaxDuration(d time.Duration) Option {
 }
 
 // WithMaxAttempts limits the number of retry attempts until finally giving up
+// returning an ErrMaxAttemptsReached error
 func WithMaxAttempts(attempts int) Option {
 	return func(b *backoff) {
 		b.Attempts = attempts
 	}
+}
+
+type backoff struct {
+	Min      time.Duration
+	Max      time.Duration
+	Attempts int
+
+	retryFunc RetryFunc
+	sleepFunc SleepFunc
+	current   time.Duration
+	attempt   int
 }
 
 func (b *backoff) retry(err error) error {
@@ -81,10 +82,9 @@ func (b *backoff) retry(err error) error {
 	}
 	b.sleepFunc(b.current)
 	if b.current < b.Max {
-		if b.current*2 > b.Max {
+		b.current *= 2
+		if b.current > b.Max {
 			b.current = b.Max
-		} else {
-			b.current *= 2
 		}
 	}
 

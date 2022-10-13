@@ -11,7 +11,6 @@ func ExampleRetry_basicUsage() {
 		fmt.Println("success")
 		return nil
 	})
-
 	// Output: success
 }
 
