@@ -1,6 +1,6 @@
 /*
-Package backoff provides tools to do exponential backoff until the provided operation either returns nil, indicating
-success, or it hits a provided attempts limit.
+Package backoff provides a function for retrying a function with exponential backoff until the
+provided operation either returns nil, indicating success, or it hits an attempts limit.
 */
 package backoff
 
@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"time"
 )
+
+var ErrMaxAttemptsReached = fmt.Errorf("max attempts reached")
 
 // OperationFunc should return nil on success, otherwise returns an error
 type OperationFunc = func() error
@@ -71,7 +73,7 @@ func WithMaxAttempts(attempts int) Option {
 func (b *backoff) retry(err error) error {
 	b.attempt += 1
 	if b.Attempts > 0 && b.attempt >= b.Attempts {
-		return fmt.Errorf("max attempts reached")
+		return ErrMaxAttemptsReached
 	}
 
 	if b.retryFunc != nil {
@@ -105,6 +107,13 @@ func newBackoff(options []Option) backoff {
 	return backoff
 }
 
+// Retry attempts to run operation until it no longer returns an error.
+// It will exponentially increase the time between each attempt until it reaches max.
+//
+// By default, it will start with a 1-second delay, which will double every attempt until it caps off at 1 minute.
+// It will retry infinitely unless the WithMaxAttempts option is set
+//
+// returns nil or ErrMaxAttemptsReached
 func Retry(operation OperationFunc, options ...Option) error {
 	backoff := newBackoff(options)
 	for {
