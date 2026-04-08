@@ -212,6 +212,23 @@ func TestRetryContext(t *testing.T) {
 		assert.Less(t, time.Since(start), time.Second, "should not have slept full duration")
 	})
 
+	t.Run("context sleep completes normally", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		calls := 0
+		err := Retry(func() error {
+			calls++
+			if calls < 3 {
+				return fmt.Errorf("not yet")
+			}
+			return nil
+		}, WithContext(ctx), WithMinDuration(time.Millisecond))
+
+		assert.NoError(t, err)
+		assert.Equal(t, 3, calls)
+	})
+
 	t.Run("succeeds before cancellation", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
