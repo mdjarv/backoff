@@ -41,5 +41,5 @@ func ExampleRetry_fullExample() {
 	// operation failed, retrying in 800 ms
 	// operation failed, retrying in 1000 ms
 	// operation failed, retrying in 1000 ms
-	// retry failed: max attempts reached
+	// retry failed: max attempts reached after 7 attempts: failed successfully
 }
